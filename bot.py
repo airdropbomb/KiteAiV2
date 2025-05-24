@@ -13,7 +13,7 @@ wib = pytz.timezone('Asia/Jakarta')
 class KiteAi:
     def __init__(self) -> None:
         self.headers = {
-            "Accept-Language": "application/json, text/plain, */*",
+            "Accept": "application/json, text/plain, */*",
             "Accept-Language": "id-ID,id;q=0.9,en-US;q=0.8,en;q=0.7",
             "Origin": "https://testnet.gokite.ai",
             "Referer": "https://testnet.gokite.ai/",
@@ -44,17 +44,17 @@ class KiteAi:
         )
 
     def welcome(self):
-    print(
-        f"""
-        {Fore.GREEN + Style.BRIGHT}       █████╗ ██████╗ ██████╗     ███╗   ██╗ ██████╗ ██████╗ ███████╗
-        {Fore.GREEN + Style.BRIGHT}      ██╔══██╗██╔══██╗██╔══██╗    ████╗  ██║██╔═══██╗██╔══██╗██╔════╝
-        {Fore.GREEN + Style.BRIGHT}      ███████║██║  ██║██████╔╝    ██╔██╗ ██║██║   ██║██║  ██║█████╗  
-        {Fore.GREEN + Style.BRIGHT}      ██╔══██║██║  ██║██╔══██╗    ██║╚██╗██║██║   ██║██║  ██║██╔══╝  
-        {Fore.GREEN + Style.BRIGHT}      ██║  ██║██████╔╝██████╔╝    ██║ ╚████║╚██████╔╝██████╔╝███████╗
-        {Fore.GREEN + Style.BRIGHT}      ╚═╝  ╚═╝╚═════╝ ╚═════╝     ╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚══════╝
-        {Fore.YELLOW + Style.BRIGHT}      Modified by ADB NODE
-        """
-    )
+        print(
+            f"""
+            {Fore.GREEN + Style.BRIGHT}       █████╗ ██████╗ ██████╗     ███╗   ██╗ ██████╗ ██████╗ ███████╗
+            {Fore.GREEN + Style.BRIGHT}      ██╔══██╗██╔══██╗██╔══██╗    ████╗  ██║██╔═══██╗██╔══██╗██╔════╝
+            {Fore.GREEN + Style.BRIGHT}      ███████║██║  ██║██████╔╝    ██╔██╗ ██║██║   ██║██║  ██║█████╗  
+            {Fore.GREEN + Style.BRIGHT}      ██╔══██║██║  ██║██╔══██╗    ██║╚██╗██║██║   ██║██║  ██║██╔══╝  
+            {Fore.GREEN + Style.BRIGHT}      ██║  ██║██████╔╝██████╔╝    ██║ ╚████║╚██████╔╝██████╔╝███████╗
+            {Fore.GREEN + Style.BRIGHT}      ╚═╝  ╚═╝╚═════╝ ╚═════╝     ╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚══════╝
+            {Fore.YELLOW + Style.BRIGHT}      Modified by ADB NODE
+            """
+        )
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
@@ -119,7 +119,6 @@ class KiteAi:
         try:
             account = Account.from_key(private_key)
             address = account.address
-            
             return address
         except Exception as e:
             return None
@@ -134,10 +133,8 @@ class KiteAi:
         key = self.hex_to_bytes(self.KEY_HEX)
         iv = os.urandom(12)
         encryptor = Cipher(algorithms.AES(key), modes.GCM(iv), backend=default_backend()).encryptor()
-
         ciphertext = encryptor.update(address.encode()) + encryptor.finalize()
         auth_tag = encryptor.tag
-
         result = iv + ciphertext + auth_tag
         return self.bytes_to_hex(result)
 
@@ -152,21 +149,15 @@ class KiteAi:
         cookies_dict = {}
         try:
             skip_keys = ['expires', 'path', 'domain', 'samesite', 'secure', 'httponly', 'max-age']
-
             for cookie_str in raw_cookies:
                 cookie_parts = cookie_str.split(';')
-
                 for part in cookie_parts:
                     cookie = part.strip()
-
                     if '=' in cookie:
                         name, value = cookie.split('=', 1)
-
                         if name and value and name.lower() not in skip_keys:
                             cookies_dict[name] = value
-
             cookie_header = "; ".join([f"{key}={value}" for key, value in cookies_dict.items()])
-            
             return cookie_header
         except Exception as e:
             return None
@@ -290,44 +281,41 @@ class KiteAi:
                 agent_lists["service_id"] = "deployment_KiMLvUiTydioiHm7PWZ12zJU"
                 agent_lists["title"] = agent_name
                 agent_lists["message"] = random.choice(self.question_lists(agent_name))
-
             elif agent_name == "Crypto Buddy":
                 agent_lists["service_id"] = "deployment_ByVHjMD6eDb9AdekRIbyuz14"
                 agent_lists["title"] = agent_name
                 agent_lists["message"] = random.choice(self.question_lists(agent_name))
-
             elif agent_name == "Sherlock":
                 agent_lists["service_id"] = "deployment_OX7sn2D0WvxGUGK8CTqsU5VJ"
                 agent_lists["title"] = agent_name
                 agent_lists["message"] = random.choice(self.question_lists(agent_name))
-
             return agent_lists
         except Exception as e:
             return None
         
     def generate_inference_payload(self, service_id: str, question: str):
         payload = {
-            "service_id":service_id,
-            "subnet":"kite_ai_labs",
-            "stream":True,
-            "body":{
-                "stream":True,
-                "message":question
+            "service_id": service_id,
+            "subnet": "kite_ai_labs",
+            "stream": True,
+            "body": {
+                "stream": True,
+                "message": question
             }
         }
         return payload
         
     def generate_receipt_payload(self, address: str, service_id: str, question: str, answer: str):
         payload = {
-            "address":address,
-            "service_id":service_id,
-            "input":[{
-                "type":"text/plain",
-                "value":question
+            "address": address,
+            "service_id": service_id,
+            "input": [{
+                "type": "text/plain",
+                "value": question
             }],
-            "output":[{
-                "type":"text/plain",
-                "value":answer
+            "output": [{
+                "type": "text/plain",
+                "value": answer
             }]
         }
         return payload
@@ -343,7 +331,6 @@ class KiteAi:
                 print(f"{Fore.WHITE + Style.BRIGHT}2. Run With Private Proxy{Style.RESET_ALL}")
                 print(f"{Fore.WHITE + Style.BRIGHT}3. Run Without Proxy{Style.RESET_ALL}")
                 choose = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3] -> {Style.RESET_ALL}").strip())
-
                 if choose in [1, 2, 3]:
                     proxy_type = (
                         "Run With Monosans Proxy" if choose == 1 else 
@@ -356,18 +343,15 @@ class KiteAi:
                     print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2 or 3.{Style.RESET_ALL}")
             except ValueError:
                 print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number (1, 2 or 3).{Style.RESET_ALL}")
-
         rotate = False
         if choose in [1, 2]:
             while True:
                 rotate = input(f"{Fore.BLUE + Style.BRIGHT}Rotate Invalid Proxy? [y/n] -> {Style.RESET_ALL}").strip()
-
                 if rotate in ["y", "n"]:
                     rotate = rotate == "y"
                     break
                 else:
                     print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter 'y' or 'n'.{Style.RESET_ALL}")
-
         while True:
             try:
                 count = int(input(f"{Fore.YELLOW + Style.BRIGHT}How Many Times Would You Like to Interact With Kite AI Agents? -> {Style.RESET_ALL}").strip())
@@ -377,12 +361,11 @@ class KiteAi:
                     print(f"{Fore.RED + Style.BRIGHT}Please enter a positive number.{Style.RESET_ALL}")
             except ValueError:
                 print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
-
         return count, choose, rotate
         
     async def user_signin(self, address: str, proxy=None, retries=5):
         url = f"{self.NEO_API}/signin"
-        data = json.dumps({"eoa":address})
+        data = json.dumps({"eoa": address})
         headers = {
             **self.headers,
             "Authorization": self.auth_tokens[address],
@@ -397,11 +380,9 @@ class KiteAi:
                     async with session.post(url=url, headers=headers, data=data) as response:
                         response.raise_for_status()
                         result = await response.json()
-
                         raw_cookies = response.headers.getall('Set-Cookie', [])
                         if raw_cookies:
                             cookie_header = self.extract_cookies(raw_cookies)
-
                             if cookie_header:
                                 return result["data"]["access_token"], cookie_header
             except (Exception, ClientResponseError) as e:
@@ -432,7 +413,7 @@ class KiteAi:
         
     async def create_quiz(self, address: str, proxy=None, retries=5):
         url = f"{self.NEO_API}/quiz/create"
-        data = json.dumps({"title":self.generate_quiz_title(), "num":1, "eoa":address})
+        data = json.dumps({"title": self.generate_quiz_title(), "num": 1, "eoa": address})
         headers = {
             **self.headers,
             "Authorization": f"Bearer {self.access_tokens[address]}",
@@ -517,7 +498,6 @@ class KiteAi:
                     async with session.post(url=url, headers=headers, data=data) as response:
                         response.raise_for_status()
                         result = ""
-
                         async for line in response.content:
                             line = line.decode("utf-8").strip()
                             if line.startswith("data:"):
@@ -529,7 +509,6 @@ class KiteAi:
                                         result += content
                                 except json.JSONDecodeError:
                                     continue
-
                         return result
             except (Exception, ClientResponseError) as e:
                 if attempt < retries - 1:
@@ -569,9 +548,7 @@ class KiteAi:
             end="\r",
             flush=True
         )
-
         proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
         if rotate_proxy:
             access_token = None
             header_cookie = None
@@ -587,16 +564,13 @@ class KiteAi:
                     proxy = self.rotate_proxy_for_account(address) if use_proxy else None
                     await asyncio.sleep(5)
                     continue
-
                 self.access_tokens[address] = access_token
                 self.header_cookies[address] = header_cookie
-
                 self.log(
                     f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
                     f"{Fore.GREEN+Style.BRIGHT} Login Success {Style.RESET_ALL}                  "
                 )
                 return True
-
         access_token, header_cookie = await self.user_signin(address, proxy)
         if not access_token or not header_cookie:
             self.log(
@@ -606,10 +580,8 @@ class KiteAi:
                 f"{Fore.YELLOW+Style.BRIGHT} Skipping This Account {Style.RESET_ALL}"
             )
             return False
-        
         self.access_tokens[address] = access_token
         self.header_cookies[address] = header_cookie
-        
         self.log(
             f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
             f"{Fore.GREEN+Style.BRIGHT} Login Success {Style.RESET_ALL}                  "
@@ -624,7 +596,6 @@ class KiteAi:
                 f"{Fore.CYAN+Style.BRIGHT}Proxy     :{Style.RESET_ALL}"
                 f"{Fore.WHITE+Style.BRIGHT} {proxy} {Style.RESET_ALL}"
             )
-        
             user = await self.user_data(address, proxy)
             if not user:
                 self.log(
@@ -632,16 +603,13 @@ class KiteAi:
                     f"{Fore.RED+Style.BRIGHT} GET User Data Failed {Style.RESET_ALL}"
                 )
                 return
-            
             username = user.get("data", {}).get("profile", {}).get("username", "Unknown")
             sa_address = user.get("data", {}).get("profile", {}).get("smart_account_address", "Undifined").upper()
             balance = user.get("data", {}).get("profile", {}).get("total_xp_points", 0)
-            
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}Username  :{Style.RESET_ALL}"
                 f"{Fore.WHITE+Style.BRIGHT} {username} {Style.RESET_ALL}"
             )
-            
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}SA Address:{Style.RESET_ALL}"
                 f"{Fore.WHITE+Style.BRIGHT} {sa_address} {Style.RESET_ALL}"
@@ -651,23 +619,19 @@ class KiteAi:
                 f"{Fore.WHITE+Style.BRIGHT} {balance} XP {Style.RESET_ALL}"
             )
             self.log(f"{Fore.CYAN+Style.BRIGHT}AI Agents :{Style.RESET_ALL}")
-
             self.user_interactions[address] = 0
-
             while self.user_interactions[address] < interact_count:
                 self.log(
                     f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
                     f"{Fore.BLUE + Style.BRIGHT}Interactions{Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT} {self.user_interactions[address] + 1} of {interact_count} {Style.RESET_ALL}"
                 )
-
                 agent_names = ["Professor", "Crypto Buddy", "Sherlock"]
                 agents = self.agent_lists(random.choice(agent_names))
                 if agents:
                     service_id = agents["service_id"]
                     agent_name = agents["title"]
                     question = agents["message"]
-
                     self.log(
                         f"{Fore.CYAN + Style.BRIGHT}    Agent Name: {Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT}{agent_name}{Style.RESET_ALL}"
@@ -676,7 +640,6 @@ class KiteAi:
                         f"{Fore.CYAN + Style.BRIGHT}    Question  : {Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT}{question}{Style.RESET_ALL}"
                     )
-
                     answer = await self.agent_inference(address, service_id, question, proxy)
                     if answer:
                         self.user_interactions[address] += 1
@@ -684,7 +647,6 @@ class KiteAi:
                             f"{Fore.CYAN + Style.BRIGHT}    Answer    : {Style.RESET_ALL}"
                             f"{Fore.WHITE + Style.BRIGHT}{answer.strip()}{Style.RESET_ALL}"
                         )
-
                         submit = await self.submit_receipt(address, sa_address, service_id, question, answer, proxy)
                         if submit:
                             self.log(
@@ -701,41 +663,32 @@ class KiteAi:
                             f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
                             f"{Fore.RED + Style.BRIGHT}Interaction Failed{Style.RESET_ALL}"
                         )
-
                     await asyncio.sleep(random.randint(5, 10))
-
         self.user_interactions[address] = 0
 
     async def main(self):
         try:
             with open('accounts.txt', 'r') as file:
                 accounts = [line.strip() for line in file if line.strip()]
-            
             interact_count, use_proxy_choice, rotate_proxy = self.print_question()
-
             while True:
                 use_proxy = False
                 if use_proxy_choice in [1, 2]:
                     use_proxy = True
-
                 self.clear_terminal()
                 self.welcome()
                 self.log(
                     f"{Fore.GREEN + Style.BRIGHT}Account's Total: {Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT}{len(accounts)}{Style.RESET_ALL}"
                 )
-
                 if use_proxy:
                     await self.load_proxies(use_proxy_choice)
-                
                 separator = "=" * 25
                 for account in accounts:
                     if account:
                         address = self.generate_address(account)
-
                         if address:
                             auth_token = self.generate_auth_token(address)
-
                             if auth_token:
                                 self.auth_tokens[address] = auth_token
                                 self.log(
@@ -745,7 +698,6 @@ class KiteAi:
                                 )
                                 await self.process_accounts(address, interact_count, use_proxy, rotate_proxy)
                                 await asyncio.sleep(3)
-
                 self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*72)
                 seconds = 24 * 60 * 60
                 while seconds > 0:
@@ -760,7 +712,6 @@ class KiteAi:
                     )
                     await asyncio.sleep(1)
                     seconds -= 1
-
         except FileNotFoundError:
             self.log(f"{Fore.RED}File 'accounts.txt' Not Found.{Style.RESET_ALL}")
             return
@@ -776,5 +727,5 @@ if __name__ == "__main__":
         print(
             f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
             f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Kite Ai Ozone - BOT{Style.RESET_ALL}                                       "                              
+            f"{Fore.RED + Style.BRIGHT}[ EXIT ] Kite Ai Ozone - BOT{Style.RESET_ALL}"
         )
