@@ -44,14 +44,17 @@ class KiteAi:
         )
 
     def welcome(self):
-        print(
-            f"""
-        {Fore.GREEN + Style.BRIGHT}Auto BOT {Fore.BLUE + Style.BRIGHT}Kite Ai Ozone
-            """
-            f"""
-        {Fore.GREEN + Style.BRIGHT}Rey? {Fore.YELLOW + Style.BRIGHT}<INI WATERMARK>
-            """
-        )
+    print(
+        f"""
+        {Fore.GREEN + Style.BRIGHT}       █████╗ ██████╗ ██████╗     ███╗   ██╗ ██████╗ ██████╗ ███████╗
+        {Fore.GREEN + Style.BRIGHT}      ██╔══██╗██╔══██╗██╔══██╗    ████╗  ██║██╔═══██╗██╔══██╗██╔════╝
+        {Fore.GREEN + Style.BRIGHT}      ███████║██║  ██║██████╔╝    ██╔██╗ ██║██║   ██║██║  ██║█████╗  
+        {Fore.GREEN + Style.BRIGHT}      ██╔══██║██║  ██║██╔══██╗    ██║╚██╗██║██║   ██║██║  ██║██╔══╝  
+        {Fore.GREEN + Style.BRIGHT}      ██║  ██║██████╔╝██████╔╝    ██║ ╚████║╚██████╔╝██████╔╝███████╗
+        {Fore.GREEN + Style.BRIGHT}      ╚═╝  ╚═╝╚═════╝ ╚═════╝     ╚═╝  ╚═══╝ ╚═════╝ ╚═════╝ ╚══════╝
+        {Fore.YELLOW + Style.BRIGHT}      Modified by ADB NODE
+        """
+    )
 
     def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
