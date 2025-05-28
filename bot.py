@@ -21,18 +21,22 @@ class KiteAi:
             "Sec-Fetch-Site": "same-site",
             "User-Agent": FakeUserAgent().random
         }
+        self.BASE_API = "https://testnet.gokite.ai"
         self.NEO_API = "https://neo.prod.gokite.ai/v2"
         self.OZONE_API = "https://ozone-point-system.prod.gokite.ai"
+        self.GOOGLE_KEY = "6Lc_VwgrAAAAALtx_UtYQnW-cFg8EPDgJ8QVqkaz"
         self.KEY_HEX = "6a1c35292b7c5b769ff47d89a17e7bc4f0adfe1b462981d28e0e9f7ff20b8f8a"
         self.BITMIND_SUBNET = "0xc368ae279275f80125284d16d292b650ecbbff8d"
         self.BITTE_SUBNET = "0xca312b44a57cc9fd60f37e6c9a343a1ad92a3b6c"
         self.KITE_AI_SUBNET = "0xb132001567650917d6bd695d1fab55db7986e9a5"
+        self.CAPTCHA_KEY = None
         self.proxies = []
         self.proxy_index = 0
         self.account_proxies = {}
         self.auth_tokens = {}
         self.access_tokens = {}
         self.header_cookies = {}
+        self.ai_agents = {}
         self.user_interactions = {}
 
     def clear_terminal(self):
@@ -62,6 +66,21 @@ class KiteAi:
         hours, remainder = divmod(seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+    
+    def load_ai_agents(self):
+        filename = "agents.json"
+        try:
+            if not os.path.exists(filename):
+                self.log(f"{Fore.RED}File {filename} Not Found.{Style.RESET_ALL}")
+                return
+
+            with open(filename, 'r') as file:
+                data = json.load(file)
+                if isinstance(data, list):
+                    return data
+                return []
+        except json.JSONDecodeError:
+            return []
     
     async def load_proxies(self, use_proxy_choice: int):
         filename = "proxy.txt"
@@ -160,139 +179,14 @@ class KiteAi:
         except Exception as e:
             return None
         
-    def question_lists(self, agent_name: str):
-        if agent_name == "Professor":
-            return [
-                "What is Kite AI's core technology?",
-                "How does Kite AI improve developer productivity?",
-                "What are the key features of Kite AI's platform?",
-                "How does Kite AI handle data security?",
-                "What makes Kite AI different from other AI platforms?",
-                "How does Kite AI integrate with existing systems?",
-                "What programming languages does Kite AI support?",
-                "How does Kite AI's API work?",
-                "What are Kite AI's scalability features?",
-                "How does Kite AI help with code quality?",
-                "What is Kite AI's approach to machine learning?",
-                "How does Kite AI handle version control?",
-                "What are Kite AI's deployment options?",
-                "How does Kite AI assist with debugging?",
-                "What are Kite AI's code completion capabilities?",
-                "How does Kite AI handle multiple projects?",
-                "What is Kite AI's pricing structure?",
-                "How does Kite AI support team collaboration?",
-                "What are Kite AI's documentation features?",
-                "How does Kite AI implement code reviews?",
-                "What is Kite AI's update frequency?",
-                "How does Kite AI handle error detection?",
-                "What are Kite AI's testing capabilities?",
-                "How does Kite AI support microservices?",
-                "What is Kite AI's cloud infrastructure?",
-                "How does Kite AI handle API documentation?",
-                "What are Kite AI's code analysis features?",
-                "How does Kite AI support continuous integration?",
-                "What is Kite AI's approach to code optimization?",
-                "How does Kite AI handle multilingual support?",
-                "What are Kite AI's security protocols?",
-                "How does Kite AI manage user permissions?",
-                "What is Kite AI's backup system?",
-                "How does Kite AI handle code refactoring?",
-                "What are Kite AI's monitoring capabilities?",
-                "How does Kite AI support remote development?",
-                "What is Kite AI's approach to technical debt?",
-                "How does Kite AI handle code dependencies?",
-                "What are Kite AI's performance metrics?",
-                "How does Kite AI support code documentation?",
-                "What is Kite AI's approach to API versioning?",
-                "How does Kite AI handle load balancing?",
-                "What are Kite AI's debugging tools?",
-                "How does Kite AI support code generation?",
-                "What is Kite AI's approach to data validation?",
-                "How does Kite AI handle error logging?",
-                "What are Kite AI's testing frameworks?",
-                "How does Kite AI support code deployment?",
-                "What is Kite AI's approach to code maintenance?",
-                "How does Kite AI handle system integration?"
-            ]
-        elif agent_name == "Crypto Buddy":
-            return [
-                "What is Bitcoin's current price?",
-                "Show me Ethereum price",
-                "What's the price of BNB?",
-                "Current Solana price?",
-                "What's AVAX trading at?",
-                "Show me MATIC price",
-                "Current price of DOT?",
-                "What's the XRP price now?",
-                "Show me ATOM price",
-                "What's the current LINK price?",
-                "Show me ADA price",
-                "What's NEAR trading at?",
-                "Current price of FTM?",
-                "What's the ALGO price?",
-                "Show me DOGE price",
-                "What's SHIB trading at?",
-                "Current price of UNI?",
-                "What's the AAVE price?",
-                "Show me LTC price",
-                "What's ETC trading at?",
-                "Show me the price of SAND",
-                "What's MANA's current price?",
-                "Current price of APE?",
-                "What's the GRT price?",
-                "Show me BAT price",
-                "What's ENJ trading at?",
-                "Current price of CHZ?",
-                "What's the CAKE price?",
-                "Show me VET price",
-                "What's ONE trading at?",
-                "Show me the price of GALA",
-                "What's THETA's current price?",
-                "Current price of ICP?",
-                "What's the FIL price?",
-                "Show me EOS price",
-                "What's XTZ trading at?",
-                "Show me the price of ZIL",
-                "What's WAVES current price?",
-                "Current price of KSM?",
-                "What's the DASH price?",
-                "Show me NEO price",
-                "What's XMR trading at?",
-                "Show me the price of IOTA",
-                "What's EGLD's current price?",
-                "Current price of COMP?",
-                "What's the SNX price?",
-                "Show me MKR price",
-                "What's CRV trading at?",
-                "Show me the price of RUNE",
-                "What's 1INCH current price?"
-            ]
-        elif agent_name == "Sherlock":
-            return [
-                "What do you think of this transaction? 0x252c02bded9a24426219248c9c1b065b752d3cf8bedf4902ed62245ab950895b"
-            ]
-        
-    def agent_lists(self, agent_name: str):
-        agent_lists = {}
-        try:
-            if agent_name == "Professor":
-                agent_lists["service_id"] = "deployment_KiMLvUiTydioiHm7PWZ12zJU"
-                agent_lists["title"] = agent_name
-                agent_lists["message"] = random.choice(self.question_lists(agent_name))
+    def setup_ai_agent(self, agents: list):
+        agent = random.choice(agents)
 
-            elif agent_name == "Crypto Buddy":
-                agent_lists["service_id"] = "deployment_ByVHjMD6eDb9AdekRIbyuz14"
-                agent_lists["title"] = agent_name
-                agent_lists["message"] = random.choice(self.question_lists(agent_name))
+        agent_name = agent["agentName"]
+        service_id = agent["serviceId"]
+        question = random.choice(agent["questionLists"])
 
-            elif agent_name == "Sherlock":
-                agent_lists["service_id"] = "deployment_OX7sn2D0WvxGUGK8CTqsU5VJ"
-                agent_lists["title"] = agent_name
-                agent_lists["message"] = random.choice(self.question_lists(agent_name))
-
-            return agent_lists
-        except Exception as e:
-            return None
+        return agent_name, service_id, question
         
     def generate_inference_payload(self, service_id: str, question: str):
         payload = {
@@ -325,7 +219,37 @@ class KiteAi:
         mask_account = account[:6] + '*' * 6 + account[-6:]
         return mask_account 
     
+    async def print_timer(self, min_delay: int, max_delay: int):
+        for remaining in range(random.randint(min_delay, max_delay), 0, -1):
+            print(
+                f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                f"{Fore.BLUE + Style.BRIGHT}Wait For{Style.RESET_ALL}"
+                f"{Fore.WHITE + Style.BRIGHT} {remaining} {Style.RESET_ALL}"
+                f"{Fore.BLUE + Style.BRIGHT}Seconds For Next Interaction...{Style.RESET_ALL}",
+                end="\r",
+                flush=True
+            )
+            await asyncio.sleep(1)
+    
     def print_question(self):
+        while True:
+            faucet = input(f"{Fore.YELLOW + Style.BRIGHT}Auto Claim Kite Token Faucet? [y/n] -> {Style.RESET_ALL}").strip()
+            if faucet in ["y", "n"]:
+                faucet = faucet == "y"
+                break
+            else:
+                print(f"{Fore.RED + Style.BRIGHT}Please enter 'y' or 'n'.{Style.RESET_ALL}")
+
+        if faucet:
+            while True:
+                capthca_key = input(f"{Fore.YELLOW + Style.BRIGHT}Enter Your Captcha Key -> {Style.RESET_ALL}").strip()
+                if capthca_key:
+                    self.CAPTCHA_KEY = capthca_key
+                    break
+                else:
+                    print(f"{Fore.RED + Style.BRIGHT}Please enter your 2captcha key.{Style.RESET_ALL}")
+
         while True:
             try:
                 count = int(input(f"{Fore.YELLOW + Style.BRIGHT}How Many Times Would You Like to Interact With Kite AI Agents? -> {Style.RESET_ALL}").strip())
@@ -367,7 +291,42 @@ class KiteAi:
                 else:
                     print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter 'y' or 'n'.{Style.RESET_ALL}")
 
-        return count, choose, rotate
+        return faucet, count, choose, rotate
+    
+    async def solve_recaptcha(self, proxy=None, retries=5):
+        url = f"http://2captcha.com/in.php?key={self.CAPTCHA_KEY}&method=userrecaptcha&googlekey={self.GOOGLE_KEY}&pageurl={self.BASE_API}&json=1"
+
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.get(url=url) as response:
+                        response.raise_for_status()
+                        result = await response.json()
+
+                        if result and result.get("status") == 1:
+                            request_id = result.get("request")
+
+                            for _ in range(30):
+                                await asyncio.sleep(5)
+
+                                res_url = f"http://2captcha.com/res.php?key={self.CAPTCHA_KEY}&action=get&id={request_id}&json=1"
+                                async with session.get(url=res_url) as res_response:
+                                    res_response.raise_for_status()
+                                    res_result = await res_response.json()
+
+                                    if res_result and res_result.get("status") == 1:
+                                        captcha_solution = res_result.get("request")
+                                        return captcha_solution
+                                    elif res_result and res_result.get("request") == "CAPCHA_NOT_READY":
+                                        await asyncio.sleep(5)
+                                    else:
+                                        break
+
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                return None
         
     async def user_signin(self, address: str, proxy=None, retries=5):
         url = f"{self.NEO_API}/signin"
@@ -480,6 +439,29 @@ class KiteAi:
             try:
                 async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
                     async with session.post(url=url, headers=headers, data=data) as response:
+                        response.raise_for_status()
+                        return await response.json()
+            except (Exception, ClientResponseError) as e:
+                if attempt < retries - 1:
+                    await asyncio.sleep(5)
+                    continue
+                return None
+            
+    async def claim_faucet(self, address: str, recaptcha_token: str, proxy=None, retries=5):
+        url = f"{self.OZONE_API}/blockchain/faucet-transfer"
+        headers = {
+            **self.headers,
+            "Authorization": f"Bearer {self.access_tokens[address]}",
+            "Content-Length":"2",
+            "Content-Type": "application/json",
+            "x-recaptcha-token": recaptcha_token
+        }
+        await asyncio.sleep(3)
+        for attempt in range(retries):
+            connector = ProxyConnector.from_url(proxy) if proxy else None
+            try:
+                async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    async with session.post(url=url, headers=headers, json={}) as response:
                         response.raise_for_status()
                         return await response.json()
             except (Exception, ClientResponseError) as e:
@@ -670,7 +652,7 @@ class KiteAi:
         )
         return True
         
-    async def process_accounts(self, address: str, interact_count: int, use_proxy: bool, rotate_proxy: bool):
+    async def process_accounts(self, address: str, agents: list, faucet: bool, interact_count: int, use_proxy: bool, rotate_proxy: bool):
         signed = await self.process_user_signin(address, use_proxy, rotate_proxy)
         if signed:
             proxy = self.get_next_proxy_for_account(address) if use_proxy else None
@@ -698,7 +680,7 @@ class KiteAi:
             
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}SA Address:{Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT} {sa_address} {Style.RESET_ALL}"
+                f"{Fore.WHITE+Style.BRIGHT} {self.mask_account(sa_address)} {Style.RESET_ALL}"
             )
             self.log(f"{Fore.CYAN+Style.BRIGHT}Balance   :{Style.RESET_ALL}")
 
@@ -723,6 +705,57 @@ class KiteAi:
                 f"{Fore.MAGENTA+Style.BRIGHT}  ● {Style.RESET_ALL}"
                 f"{Fore.WHITE+Style.BRIGHT} {usdt_balance} USDT {Style.RESET_ALL}"
             )
+
+            if faucet:
+                is_claimable = user.get("data", {}).get("faucet_claimable", False)
+
+                if is_claimable:
+                    self.log(f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}")
+                    print(
+                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
+                        f"{Fore.BLUE + Style.BRIGHT}Wait For Solving Captcha...{Style.RESET_ALL}",
+                        end="\r",
+                        flush=True
+                    )
+
+                    recaptcha_token = await self.solve_recaptcha(proxy)
+                    if recaptcha_token:
+                        self.log(
+                            f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                            f"{Fore.BLUE + Style.BRIGHT}Captcha :{Style.RESET_ALL}"
+                            f"{Fore.GREEN + Style.BRIGHT} Solved {Style.RESET_ALL}                 "
+                        )
+
+                        claim = await self.claim_faucet(address, recaptcha_token, proxy)
+                        if claim:
+                            self.log(
+                                f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                                f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                                f"{Fore.GREEN + Style.BRIGHT} Claimed Successfully {Style.RESET_ALL}"
+                            )
+                        else:
+                            self.log(
+                                f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                                f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                                f"{Fore.RED + Style.BRIGHT} Not Claimed {Style.RESET_ALL}"
+                            )
+                    else:
+                        self.log(
+                            f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                            f"{Fore.BLUE + Style.BRIGHT}Captcha :{Style.RESET_ALL}"
+                            f"{Fore.RED + Style.BRIGHT} Unsolved {Style.RESET_ALL}                 "
+                        )
+                else:
+                    self.log(
+                        f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}"
+                        f"{Fore.YELLOW+Style.BRIGHT} Not Time to Claim {Style.RESET_ALL}"
+                    )
+            else:
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} Skipping Claim {Style.RESET_ALL}"
+                )
 
             create = await self.create_quiz(address, proxy)
             if create:
@@ -800,15 +833,22 @@ class KiteAi:
                     f"{Fore.RED+Style.BRIGHT} GET Data Failed {Style.RESET_ALL}"
                 )
 
-            if kite_balance != "N/A" and kite_balance >= 1:
-                stake = await self.stake_token(address, kite_balance, proxy)
+            kite_balance = 0
+            balance = await self.token_balance(address, proxy)
+            if balance:
+                kite_balance = balance.get("data", ).get("balances", {}).get("kite", 0)
+
+            if kite_balance >= 1:
+                amount = float(f"{kite_balance:.1f}")
+
+                stake = await self.stake_token(address, amount, proxy)
                 if stake:
                     self.log(
                         f"{Fore.CYAN+Style.BRIGHT}Stake     :{Style.RESET_ALL}"
                         f"{Fore.GREEN+Style.BRIGHT} Success {Style.RESET_ALL}"
                         f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
                         f"{Fore.CYAN+Style.BRIGHT} Amount: {Style.RESET_ALL}"
-                        f"{Fore.WHITE+Style.BRIGHT}{kite_balance} KITE{Style.RESET_ALL}"
+                        f"{Fore.WHITE+Style.BRIGHT}{amount} KITE{Style.RESET_ALL}"
                     )
                 else:
                     self.log(
@@ -845,51 +885,46 @@ class KiteAi:
                 self.log(
                     f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
                     f"{Fore.BLUE + Style.BRIGHT}Interactions{Style.RESET_ALL}"
-                    f"{Fore.WHITE + Style.BRIGHT} {self.user_interactions[address] + 1} of {interact_count} {Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT} {self.user_interactions[address] + 1} of {interact_count} {Style.RESET_ALL}                       "
                 )
 
-                agent_names = ["Professor", "Crypto Buddy", "Sherlock"]
-                agents = self.agent_lists(random.choice(agent_names))
-                if agents:
-                    service_id = agents["service_id"]
-                    agent_name = agents["title"]
-                    question = agents["message"]
+                agent_name, service_id, question = self.setup_ai_agent(agents)
 
+                self.log(
+                    f"{Fore.CYAN + Style.BRIGHT}    Agent Name: {Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT}{agent_name}{Style.RESET_ALL}"
+                )
+                self.log(
+                    f"{Fore.CYAN + Style.BRIGHT}    Question  : {Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT}{question}{Style.RESET_ALL}"
+                )
+
+                answer = await self.agent_inference(address, service_id, question, proxy)
+                if answer:
+                    self.user_interactions[address] += 1
                     self.log(
-                        f"{Fore.CYAN + Style.BRIGHT}    Agent Name: {Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT}{agent_name}{Style.RESET_ALL}"
-                    )
-                    self.log(
-                        f"{Fore.CYAN + Style.BRIGHT}    Question  : {Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT}{question}{Style.RESET_ALL}"
+                        f"{Fore.CYAN + Style.BRIGHT}    Answer    : {Style.RESET_ALL}"
+                        f"{Fore.WHITE + Style.BRIGHT}{answer.strip()}{Style.RESET_ALL}"
                     )
 
-                    answer = await self.agent_inference(address, service_id, question, proxy)
-                    if answer:
-                        self.user_interactions[address] += 1
+                    submit = await self.submit_receipt(address, sa_address, service_id, question, answer, proxy)
+                    if submit:
                         self.log(
-                            f"{Fore.CYAN + Style.BRIGHT}    Answer    : {Style.RESET_ALL}"
-                            f"{Fore.WHITE + Style.BRIGHT}{answer.strip()}{Style.RESET_ALL}"
+                            f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
+                            f"{Fore.GREEN + Style.BRIGHT}Receipt Submited Successfully{Style.RESET_ALL}"
                         )
-
-                        submit = await self.submit_receipt(address, sa_address, service_id, question, answer, proxy)
-                        if submit:
-                            self.log(
-                                f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
-                                f"{Fore.GREEN + Style.BRIGHT}Receipt Submited Successfully{Style.RESET_ALL}"
-                            )
-                        else:
-                            self.log(
-                                f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
-                                f"{Fore.RED + Style.BRIGHT}Submit Receipt Failed{Style.RESET_ALL}"
-                            )
                     else:
                         self.log(
                             f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
-                            f"{Fore.RED + Style.BRIGHT}Interaction Failed{Style.RESET_ALL}"
+                            f"{Fore.RED + Style.BRIGHT}Submit Receipt Failed{Style.RESET_ALL}"
                         )
+                else:
+                    self.log(
+                        f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
+                        f"{Fore.RED + Style.BRIGHT}Interaction Failed{Style.RESET_ALL}"
+                    )
 
-                    await asyncio.sleep(random.randint(5, 10))
+                await self.print_timer(5, 10)
 
         self.user_interactions[address] = 0
 
@@ -897,8 +932,13 @@ class KiteAi:
         try:
             with open('accounts.txt', 'r') as file:
                 accounts = [line.strip() for line in file if line.strip()]
+
+            agents = self.load_ai_agents()
+            if not agents:
+                self.log(f"{Fore.RED + Style.BRIGHT}No Agents Loaded.{Style.RESET_ALL}")
+                return
             
-            count, use_proxy_choice, rotate_proxy = self.print_question()
+            faucet, count, use_proxy_choice, rotate_proxy = self.print_question()
 
             while True:
                 use_proxy = False
@@ -930,7 +970,7 @@ class KiteAi:
                         
                         self.auth_tokens[address] = auth_token
                         
-                        await self.process_accounts(address, count, use_proxy, rotate_proxy)
+                        await self.process_accounts(address, agents, faucet, count, use_proxy, rotate_proxy)
                         await asyncio.sleep(3)
 
                 self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*72)
