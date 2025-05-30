@@ -24,7 +24,7 @@ class KiteAi:
         self.BASE_API = "https://testnet.gokite.ai"
         self.NEO_API = "https://neo.prod.gokite.ai/v2"
         self.OZONE_API = "https://ozone-point-system.prod.gokite.ai"
-        self.GOOGLE_KEY = "6Lc_VwgrAAAAALtx_UtYQnW-cFg8EPDgJ8QVqkaz"
+        self.SITE_KEY = "6Lc_VwgrAAAAALtx_UtYQnW-cFg8EPDgJ8QVqkaz"
         self.KEY_HEX = "6a1c35292b7c5b769ff47d89a17e7bc4f0adfe1b462981d28e0e9f7ff20b8f8a"
         self.BITMIND_SUBNET = "0xc368ae279275f80125284d16d292b650ecbbff8d"
         self.BITTE_SUBNET = "0xca312b44a57cc9fd60f37e6c9a343a1ad92a3b6c"
@@ -62,7 +62,7 @@ class KiteAi:
             """
         )
 
-    def format_seconds(self, seconds):
+   def format_seconds(self, seconds):
         hours, remainder = divmod(seconds, 3600)
         minutes, seconds = divmod(remainder, 60)
         return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
@@ -243,7 +243,7 @@ class KiteAi:
 
         if faucet:
             while True:
-                capthca_key = input(f"{Fore.YELLOW + Style.BRIGHT}Enter Your Captcha Key -> {Style.RESET_ALL}").strip()
+                capthca_key = input(f"{Fore.YELLOW + Style.BRIGHT}Enter Your 2Captcha Key -> {Style.RESET_ALL}").strip()
                 if capthca_key:
                     self.CAPTCHA_KEY = capthca_key
                     break
@@ -294,38 +294,41 @@ class KiteAi:
         return faucet, count, choose, rotate
     
     async def solve_recaptcha(self, proxy=None, retries=5):
-        url = f"http://2captcha.com/in.php?key={self.CAPTCHA_KEY}&method=userrecaptcha&googlekey={self.GOOGLE_KEY}&pageurl={self.BASE_API}&json=1"
-
         for attempt in range(retries):
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
                 async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+
+                    url = f"http://2captcha.com/in.php?key={self.CAPTCHA_KEY}&method=userrecaptcha&googlekey={self.SITE_KEY}&pageurl={self.BASE_API}&json=1"
                     async with session.get(url=url) as response:
                         response.raise_for_status()
                         result = await response.json()
 
-                        if result and result.get("status") == 1:
-                            request_id = result.get("request")
+                        if result.get("status") != 1:
+                            await asyncio.sleep(5)
+                            continue
 
-                            for _ in range(30):
-                                await asyncio.sleep(5)
+                        request_id = result.get("request")
 
-                                res_url = f"http://2captcha.com/res.php?key={self.CAPTCHA_KEY}&action=get&id={request_id}&json=1"
-                                async with session.get(url=res_url) as res_response:
-                                    res_response.raise_for_status()
-                                    res_result = await res_response.json()
+                        for _ in range(30):
+                            res_url = f"http://2captcha.com/res.php?key={self.CAPTCHA_KEY}&action=get&id={request_id}&json=1"
+                            async with session.get(url=res_url) as res_response:
+                                res_response.raise_for_status()
+                                res_result = await res_response.json()
 
-                                    if res_result and res_result.get("status") == 1:
-                                        captcha_solution = res_result.get("request")
-                                        return captcha_solution
-                                    elif res_result and res_result.get("request") == "CAPCHA_NOT_READY":
-                                        await asyncio.sleep(5)
-                                    else:
-                                        break
+                                if res_result.get("status") == 1:
+                                    recaptcha_token = res_result.get("request")
+                                    return recaptcha_token
+                                elif res_result.get("request") == "CAPCHA_NOT_READY":
+                                    await asyncio.sleep(5)
+                                    continue
+                                else:
+                                    break
 
             except (Exception, ClientResponseError) as e:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
+                    continue
                 return None
         
     async def user_signin(self, address: str, proxy=None, retries=5):
