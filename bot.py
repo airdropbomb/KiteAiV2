@@ -62,10 +62,19 @@ class KiteAi:
          """
      )
 
-    def format_seconds(self, seconds):
-     hours, remainder = divmod(seconds, 3600)
-     minutes, seconds = divmod(remainder, 60)
-     return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+     def format_seconds(self, seconds):
+        hours, remainder = divmod(seconds, 3600)
+        minutes, seconds = divmod(remainder, 60)
+        return f"{int(hours):02}:{int(minutes):02}:{int(seconds):02}"
+    
+    def load_2captcha_key(self):
+        try:
+            with open("2captcha_key.txt", 'r') as file:
+                captcha_key = file.read().strip()
+
+            return captcha_key
+        except Exception as e:
+            return None
     
     def load_ai_agents(self):
         filename = "agents.json"
@@ -241,15 +250,6 @@ class KiteAi:
             else:
                 print(f"{Fore.RED + Style.BRIGHT}Please enter 'y' or 'n'.{Style.RESET_ALL}")
 
-        if faucet:
-            while True:
-                capthca_key = input(f"{Fore.YELLOW + Style.BRIGHT}Enter Your 2Captcha Key -> {Style.RESET_ALL}").strip()
-                if capthca_key:
-                    self.CAPTCHA_KEY = capthca_key
-                    break
-                else:
-                    print(f"{Fore.RED + Style.BRIGHT}Please enter your 2captcha key.{Style.RESET_ALL}")
-
         while True:
             try:
                 count = int(input(f"{Fore.YELLOW + Style.BRIGHT}How Many Times Would You Like to Interact With Kite AI Agents? -> {Style.RESET_ALL}").strip())
@@ -298,6 +298,9 @@ class KiteAi:
             connector = ProxyConnector.from_url(proxy) if proxy else None
             try:
                 async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
+                    
+                    if self.CAPTCHA_KEY is None:
+                        return None
 
                     url = f"http://2captcha.com/in.php?key={self.CAPTCHA_KEY}&method=userrecaptcha&googlekey={self.SITE_KEY}&pageurl={self.BASE_API}&json=1"
                     async with session.get(url=url) as response:
@@ -539,7 +542,7 @@ class KiteAi:
                     continue
                 return None
             
-    async def agent_inference(self, address: str, service_id: str, question: str, proxy=None, retries=5):
+    async def agent_inference(self, address: str, service_id: str, question: str, use_proxy: bool, rotate_proxy: bool, proxy=None, retries=5):
         url = f"{self.OZONE_API}/agent/inference"
         data = json.dumps(self.generate_inference_payload(service_id, question))
         headers = {
@@ -554,6 +557,12 @@ class KiteAi:
             try:
                 async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
                     async with session.post(url=url, headers=headers, data=data) as response:
+                        if response.status == 401:
+                            await self.process_user_signin(address, use_proxy, rotate_proxy)
+                            headers["Authorization"] = f"Bearer {self.access_tokens[address]}"
+                            await asyncio.sleep(5)
+                            continue
+
                         response.raise_for_status()
                         result = ""
 
@@ -576,7 +585,7 @@ class KiteAi:
                     continue
                 return None
             
-    async def submit_receipt(self, address: str, sa_address: str, service_id: str, question: str, answer: str, proxy=None, retries=5):
+    async def submit_receipt(self, address: str, sa_address: str, service_id: str, question: str, answer: str, use_proxy: bool, rotate_proxy: bool, proxy=None, retries=5):
         url = f"{self.NEO_API}/submit_receipt"
         data = json.dumps(self.generate_receipt_payload(sa_address, service_id, question, answer))
         headers = {
@@ -592,6 +601,11 @@ class KiteAi:
             try:
                 async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
                     async with session.post(url=url, headers=headers, data=data) as response:
+                        if response.status == 401:
+                            await self.process_user_signin(address, use_proxy, rotate_proxy)
+                            headers["Authorization"] = f"Bearer {self.access_tokens[address]}"
+                            await asyncio.sleep(5)
+                            continue
                         response.raise_for_status()
                         return await response.json()
             except (Exception, ClientResponseError) as e:
@@ -902,7 +916,7 @@ class KiteAi:
                     f"{Fore.WHITE + Style.BRIGHT}{question}{Style.RESET_ALL}"
                 )
 
-                answer = await self.agent_inference(address, service_id, question, proxy)
+                answer = await self.agent_inference(address, service_id, question, use_proxy, rotate_proxy, proxy)
                 if answer:
                     self.user_interactions[address] += 1
                     self.log(
@@ -910,7 +924,7 @@ class KiteAi:
                         f"{Fore.WHITE + Style.BRIGHT}{answer.strip()}{Style.RESET_ALL}"
                     )
 
-                    submit = await self.submit_receipt(address, sa_address, service_id, question, answer, proxy)
+                    submit = await self.submit_receipt(address, sa_address, service_id, question, answer, use_proxy, rotate_proxy, proxy)
                     if submit:
                         self.log(
                             f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
@@ -935,6 +949,10 @@ class KiteAi:
         try:
             with open('accounts.txt', 'r') as file:
                 accounts = [line.strip() for line in file if line.strip()]
+
+            captcha_key = self.load_2captcha_key()
+            if captcha_key:
+                self.CAPTCHA_KEY = captcha_key
 
             agents = self.load_ai_agents()
             if not agents:
