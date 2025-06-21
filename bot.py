@@ -96,18 +96,18 @@ class KiteAi:
         try:
             if use_proxy_choice == 1:
                 async with ClientSession(timeout=ClientTimeout(total=30)) as session:
-                    async with session.get("https://raw.githubusercontent.com/monosans/proxy-list/main/proxies/all.txt") as response:
+                    async with session.get("https://api.proxyscrape.com/v4/free-proxy-list/get?request=display_proxies&proxy_format=protocolipport&format=text") as response:
                         response.raise_for_status()
                         content = await response.text()
                         with open(filename, 'w') as f:
                             f.write(content)
-                        self.proxies = content.splitlines()
+                        self.proxies = [line.strip() for line in content.splitlines() if line.strip()]
             else:
                 if not os.path.exists(filename):
                     self.log(f"{Fore.RED + Style.BRIGHT}File {filename} Not Found.{Style.RESET_ALL}")
                     return
                 with open(filename, 'r') as f:
-                    self.proxies = f.read().splitlines()
+                    self.proxies = [line.strip() for line in f.read().splitlines() if line.strip()]
             
             if not self.proxies:
                 self.log(f"{Fore.RED + Style.BRIGHT}No Proxies Found.{Style.RESET_ALL}")
@@ -159,7 +159,7 @@ class KiteAi:
 
             return result_hex
         except Exception as e:
-            raise Exception(f"Generate Auth Token Failed: {str(e)}")
+            return None
     
     def generate_quiz_title(self):
         today = datetime.today().strftime('%Y-%m-%d')
@@ -186,7 +186,7 @@ class KiteAi:
             
             return cookie_header
         except Exception as e:
-            return None
+            raise Exception(f"Extract Cookies Data Failed: {str(e)}")
         
     def setup_ai_agent(self, agents: list):
         agent = random.choice(agents)
@@ -198,38 +198,49 @@ class KiteAi:
         return agent_name, service_id, question
         
     def generate_inference_payload(self, service_id: str, question: str):
-        payload = {
-            "service_id":service_id,
-            "subnet":"kite_ai_labs",
-            "stream":True,
-            "body":{
+        try:
+            payload = {
+                "service_id":service_id,
+                "subnet":"kite_ai_labs",
                 "stream":True,
-                "message":question
+                "body":{
+                    "stream":True,
+                    "message":question
+                }
             }
-        }
-        return payload
+
+            return payload
+        except Exception as e:
+            raise Exception(f"Generate Inference Payload Failed: {str(e)}")
         
     def generate_receipt_payload(self, address: str, service_id: str, question: str, answer: str):
-        payload = {
-            "address":address,
-            "service_id":service_id,
-            "input":[{
-                "type":"text/plain",
-                "value":question
-            }],
-            "output":[{
-                "type":"text/plain",
-                "value":answer
-            }]
-        }
-        return payload
+        try:
+            payload = {
+                "address":address,
+                "service_id":service_id,
+                "input":[{
+                    "type":"text/plain",
+                    "value":question
+                }],
+                "output":[{
+                    "type":"text/plain",
+                    "value":answer
+                }]
+            }
+
+            return payload
+        except Exception as e:
+            raise Exception(f"Generate Receipt Payload Failed: {str(e)}")
     
     def mask_account(self, account):
-        mask_account = account[:6] + '*' * 6 + account[-6:]
-        return mask_account 
+        try:
+            mask_account = account[:6] + '*' * 6 + account[-6:]
+            return mask_account
+        except Exception as e:
+            return None
     
-    async def print_timer(self, min_delay: int, max_delay: int):
-        for remaining in range(random.randint(min_delay, max_delay), 0, -1):
+    async def print_timer(self):
+        for remaining in range(random.randint(self.min_delay, self.max_delay), 0, -1):
             print(
                 f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
                 f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
@@ -252,28 +263,18 @@ class KiteAi:
 
         while True:
             try:
-                count = int(input(f"{Fore.YELLOW + Style.BRIGHT}How Many Times Would You Like to Interact With Kite AI Agents? -> {Style.RESET_ALL}").strip())
-                if count > 0:
-                    break
-                else:
-                    print(f"{Fore.RED + Style.BRIGHT}Please enter a positive number.{Style.RESET_ALL}")
-            except ValueError:
-                print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
-
-        while True:
-            try:
-                print(f"{Fore.WHITE + Style.BRIGHT}1. Run With Monosans Proxy{Style.RESET_ALL}")
+                print(f"{Fore.WHITE + Style.BRIGHT}1. Run With Proxyscrape Free Proxy{Style.RESET_ALL}")
                 print(f"{Fore.WHITE + Style.BRIGHT}2. Run With Private Proxy{Style.RESET_ALL}")
                 print(f"{Fore.WHITE + Style.BRIGHT}3. Run Without Proxy{Style.RESET_ALL}")
                 choose = int(input(f"{Fore.BLUE + Style.BRIGHT}Choose [1/2/3] -> {Style.RESET_ALL}").strip())
 
                 if choose in [1, 2, 3]:
                     proxy_type = (
-                        "Run With Monosans Proxy" if choose == 1 else 
-                        "Run With Private Proxy" if choose == 2 else 
-                        "Run Without Proxy"
+                        "With Proxyscrape Free" if choose == 1 else 
+                        "With Private" if choose == 2 else 
+                        "Without"
                     )
-                    print(f"{Fore.GREEN + Style.BRIGHT}{proxy_type} Selected.{Style.RESET_ALL}")
+                    print(f"{Fore.GREEN + Style.BRIGHT}Run {proxy_type} Proxy Selected.{Style.RESET_ALL}")
                     break
                 else:
                     print(f"{Fore.RED + Style.BRIGHT}Please enter either 1, 2 or 3.{Style.RESET_ALL}")
@@ -291,7 +292,29 @@ class KiteAi:
                 else:
                     print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter 'y' or 'n'.{Style.RESET_ALL}")
 
-        return faucet, count, choose, rotate
+        while True:
+                try:
+                    min_delay = int(input(f"{Fore.YELLOW + Style.BRIGHT}Min Delay Each Interactions -> {Style.RESET_ALL}").strip())
+                    if min_delay >= 0:
+                        self.min_delay = min_delay
+                        break
+                    else:
+                        print(f"{Fore.RED + Style.BRIGHT}Min Delay must be >= 0.{Style.RESET_ALL}")
+                except ValueError:
+                    print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
+
+        while True:
+            try:
+                max_delay = int(input(f"{Fore.YELLOW + Style.BRIGHT}Max Delay Each Interactions -> {Style.RESET_ALL}").strip())
+                if max_delay >= min_delay:
+                    self.max_delay = max_delay
+                    break
+                else:
+                    print(f"{Fore.RED + Style.BRIGHT}Min Delay must be >= Min Delay.{Style.RESET_ALL}")
+            except ValueError:
+                print(f"{Fore.RED + Style.BRIGHT}Invalid input. Enter a number.{Style.RESET_ALL}")
+
+        return faucet, choose, rotate
     
     async def solve_recaptcha(self, proxy=None, retries=5):
         for attempt in range(retries):
@@ -312,6 +335,11 @@ class KiteAi:
                             continue
 
                         request_id = result.get("request")
+                        self.log(
+                            f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                            f"{Fore.BLUE + Style.BRIGHT}Req Id  :{Style.RESET_ALL}"
+                            f"{Fore.WHITE + Style.BRIGHT} {request_id} {Style.RESET_ALL}"
+                        )
 
                         for _ in range(30):
                             res_url = f"http://2captcha.com/res.php?key={self.CAPTCHA_KEY}&action=get&id={request_id}&json=1"
@@ -323,6 +351,11 @@ class KiteAi:
                                     recaptcha_token = res_result.get("request")
                                     return recaptcha_token
                                 elif res_result.get("request") == "CAPCHA_NOT_READY":
+                                    self.log(
+                                        f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                                        f"{Fore.BLUE + Style.BRIGHT}Message :{Style.RESET_ALL}"
+                                        f"{Fore.WHITE + Style.BRIGHT} Captcha Not Ready {Style.RESET_ALL}"
+                                    )
                                     await asyncio.sleep(5)
                                     continue
                                 else:
@@ -357,12 +390,19 @@ class KiteAi:
                             cookie_header = self.extract_cookies(raw_cookies)
 
                             if cookie_header:
-                                return result["data"]["access_token"], cookie_header
+                                return result, cookie_header
             except (Exception, ClientResponseError) as e:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None, None
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Login Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+        
+        return None, None
         
     async def user_data(self, address: str, proxy=None, retries=5):
         url = f"{self.OZONE_API}/me"
@@ -382,7 +422,14 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Error     :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} GET User Data Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
         
     async def create_quiz(self, address: str, proxy=None, retries=5):
         url = f"{self.NEO_API}/quiz/create"
@@ -406,7 +453,14 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Daily Quiz:{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} GET Id Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
         
     async def get_quiz(self, address: str, quiz_id: int, proxy=None, retries=5):
         url = f"{self.NEO_API}/quiz/get?id={quiz_id}&eoa={address}"
@@ -427,7 +481,15 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                    f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} GET Question & Answer Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
             
     async def submit_quiz(self, address: str, quiz_id: int, question_id: int, quiz_answer: str, proxy=None, retries=5):
         url = f"{self.NEO_API}/quiz/submit"
@@ -451,7 +513,15 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                    f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Submit Answer Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
             
     async def claim_faucet(self, address: str, recaptcha_token: str, proxy=None, retries=5):
         url = f"{self.OZONE_API}/blockchain/faucet-transfer"
@@ -474,7 +544,15 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                    f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Not Claimed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
             
     async def token_balance(self, address: str, proxy=None, retries=5):
         url = f"{self.OZONE_API}/me/balance"
@@ -494,7 +572,14 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Error     :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} GET Balance Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
             
     async def stake_token(self, address: str, amount: float, proxy=None, retries=5):
         url = f"{self.OZONE_API}/subnet/delegate"
@@ -517,7 +602,14 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Stake     :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
             
     async def claim_stake_rewards(self, address: str, proxy=None, retries=5):
         url = f"{self.OZONE_API}/subnet/claim-rewards"
@@ -540,7 +632,14 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Unstake   :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
             
     async def agent_inference(self, address: str, service_id: str, question: str, use_proxy: bool, rotate_proxy: bool, proxy=None, retries=5):
         url = f"{self.OZONE_API}/agent/inference"
@@ -560,7 +659,6 @@ class KiteAi:
                         if response.status == 401:
                             await self.process_user_signin(address, use_proxy, rotate_proxy)
                             headers["Authorization"] = f"Bearer {self.access_tokens[address]}"
-                            await asyncio.sleep(5)
                             continue
 
                         response.raise_for_status()
@@ -583,9 +681,17 @@ class KiteAi:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                    f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Agents Didn't Respond {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
             
-    async def submit_receipt(self, address: str, sa_address: str, service_id: str, question: str, answer: str, use_proxy: bool, rotate_proxy: bool, proxy=None, retries=5):
+    async def submit_receipt(self, address: str, sa_address: str, service_id: str, question: str, answer: str, proxy=None, retries=5):
         url = f"{self.NEO_API}/submit_receipt"
         data = json.dumps(self.generate_receipt_payload(sa_address, service_id, question, answer))
         headers = {
@@ -601,89 +707,55 @@ class KiteAi:
             try:
                 async with ClientSession(connector=connector, timeout=ClientTimeout(total=60)) as session:
                     async with session.post(url=url, headers=headers, data=data) as response:
-                        if response.status == 401:
-                            await self.process_user_signin(address, use_proxy, rotate_proxy)
-                            headers["Authorization"] = f"Bearer {self.access_tokens[address]}"
-                            await asyncio.sleep(5)
-                            continue
                         response.raise_for_status()
                         return await response.json()
             except (Exception, ClientResponseError) as e:
                 if attempt < retries - 1:
                     await asyncio.sleep(5)
                     continue
-                return None
+                self.log(
+                    f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                    f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
+                    f"{Fore.RED+Style.BRIGHT} Submit Receipt Failed {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                    f"{Fore.YELLOW+Style.BRIGHT} {str(e)} {Style.RESET_ALL}"
+                )
+
+        return None
             
     async def process_user_signin(self, address: str, use_proxy: bool, rotate_proxy: bool):
-        print(
-            f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-            f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-            f"{Fore.YELLOW + Style.BRIGHT}Try To Login, Wait...{Style.RESET_ALL}",
-            end="\r",
-            flush=True
-        )
-
-        proxy = self.get_next_proxy_for_account(address) if use_proxy else None
-
-        if rotate_proxy:
-            access_token = None
-            header_cookie = None
-            while access_token is None or header_cookie is None:
-                access_token, header_cookie = await self.user_signin(address, proxy)
-                if not access_token or not header_cookie:
-                    self.log(
-                        f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
-                        f"{Fore.RED+Style.BRIGHT} Login Failed {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                        f"{Fore.YELLOW+Style.BRIGHT} Rotating Proxy {Style.RESET_ALL}"
-                    )
-                    proxy = self.rotate_proxy_for_account(address) if use_proxy else None
-                    await asyncio.sleep(5)
-                    continue
-
-                self.access_tokens[address] = access_token
-                self.header_cookies[address] = header_cookie
-
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
-                    f"{Fore.GREEN+Style.BRIGHT} Login Success {Style.RESET_ALL}                  "
-                )
-                return True
-
-        access_token, header_cookie = await self.user_signin(address, proxy)
-        if not access_token or not header_cookie:
-            self.log(
-                f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
-                f"{Fore.RED+Style.BRIGHT} Login Failed {Style.RESET_ALL}"
-                f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                f"{Fore.YELLOW+Style.BRIGHT} Skipping This Account {Style.RESET_ALL}"
-            )
-            return False
-        
-        self.access_tokens[address] = access_token
-        self.header_cookies[address] = header_cookie
-        
-        self.log(
-            f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
-            f"{Fore.GREEN+Style.BRIGHT} Login Success {Style.RESET_ALL}                  "
-        )
-        return True
-        
-    async def process_accounts(self, address: str, agents: list, faucet: bool, interact_count: int, use_proxy: bool, rotate_proxy: bool):
-        signed = await self.process_user_signin(address, use_proxy, rotate_proxy)
-        if signed:
+        while True:
             proxy = self.get_next_proxy_for_account(address) if use_proxy else None
             self.log(
                 f"{Fore.CYAN+Style.BRIGHT}Proxy     :{Style.RESET_ALL}"
                 f"{Fore.WHITE+Style.BRIGHT} {proxy} {Style.RESET_ALL}"
             )
+
+            result, header_cookie = await self.user_signin(address, proxy)
+            if result and header_cookie:
+                self.access_tokens[address] = result["data"]["access_token"]
+                self.header_cookies[address] = header_cookie
+
+                self.log(
+                    f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
+                    f"{Fore.GREEN+Style.BRIGHT} Login Success {Style.RESET_ALL}"
+                )
+                return True
+            
+            if rotate_proxy:
+                proxy = self.rotate_proxy_for_account(address)
+                await asyncio.sleep(5)
+                continue
+
+            return False
+        
+    async def process_accounts(self, address: str, faucet: bool, use_proxy: bool, rotate_proxy: bool):
+        signed = await self.process_user_signin(address, use_proxy, rotate_proxy)
+        if signed:
+            proxy = self.get_next_proxy_for_account(address) if use_proxy else None
         
             user = await self.user_data(address, proxy)
             if not user:
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
-                    f"{Fore.RED+Style.BRIGHT} GET User Data Failed {Style.RESET_ALL}"
-                )
                 return
             
             username = user.get("data", {}).get("profile", {}).get("username", "Unknown")
@@ -706,42 +778,37 @@ class KiteAi:
                 f"{Fore.WHITE+Style.BRIGHT} {balance} XP {Style.RESET_ALL}"
             )
 
-            kite_balance = "N/A"
-            usdt_balance = "N/A"
-
             balance = await self.token_balance(address, proxy)
             if balance:
                 kite_balance = balance.get("data", ).get("balances", {}).get("kite", 0)
                 usdt_balance = balance.get("data", ).get("balances", {}).get("usdt", 0)
 
-            self.log(
-                f"{Fore.MAGENTA+Style.BRIGHT}  ● {Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT} {kite_balance} KITE {Style.RESET_ALL}"
-            )
-            self.log(
-                f"{Fore.MAGENTA+Style.BRIGHT}  ● {Style.RESET_ALL}"
-                f"{Fore.WHITE+Style.BRIGHT} {usdt_balance} USDT {Style.RESET_ALL}"
-            )
+                self.log(
+                    f"{Fore.MAGENTA+Style.BRIGHT}  ● {Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {kite_balance} KITE {Style.RESET_ALL}"
+                )
+                self.log(
+                    f"{Fore.MAGENTA+Style.BRIGHT}  ● {Style.RESET_ALL}"
+                    f"{Fore.WHITE+Style.BRIGHT} {usdt_balance} USDT {Style.RESET_ALL}"
+                )
 
             if faucet:
                 is_claimable = user.get("data", {}).get("faucet_claimable", False)
 
                 if is_claimable:
                     self.log(f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}")
-                    print(
-                        f"{Fore.CYAN + Style.BRIGHT}[ {datetime.now().astimezone(wib).strftime('%x %X %Z')} ]{Style.RESET_ALL}"
-                        f"{Fore.WHITE + Style.BRIGHT} | {Style.RESET_ALL}"
-                        f"{Fore.BLUE + Style.BRIGHT}Wait For Solving Captcha...{Style.RESET_ALL}",
-                        end="\r",
-                        flush=True
+
+                    self.log(
+                        f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
+                        f"{Fore.YELLOW + Style.BRIGHT}Solving reCaptcha...{Style.RESET_ALL}"
                     )
 
                     recaptcha_token = await self.solve_recaptcha(proxy)
                     if recaptcha_token:
                         self.log(
                             f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
-                            f"{Fore.BLUE + Style.BRIGHT}Captcha :{Style.RESET_ALL}"
-                            f"{Fore.GREEN + Style.BRIGHT} Solved {Style.RESET_ALL}                 "
+                            f"{Fore.BLUE + Style.BRIGHT}Message :{Style.RESET_ALL}"
+                            f"{Fore.GREEN + Style.BRIGHT} reCaptcha Solved Successfully {Style.RESET_ALL}"
                         )
 
                         claim = await self.claim_faucet(address, recaptcha_token, proxy)
@@ -751,18 +818,14 @@ class KiteAi:
                                 f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
                                 f"{Fore.GREEN + Style.BRIGHT} Claimed Successfully {Style.RESET_ALL}"
                             )
-                        else:
-                            self.log(
-                                f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
-                                f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
-                                f"{Fore.RED + Style.BRIGHT} Not Claimed {Style.RESET_ALL}"
-                            )
+
                     else:
                         self.log(
                             f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
-                            f"{Fore.BLUE + Style.BRIGHT}Captcha :{Style.RESET_ALL}"
-                            f"{Fore.RED + Style.BRIGHT} Unsolved {Style.RESET_ALL}                 "
+                            f"{Fore.BLUE + Style.BRIGHT}Message :{Style.RESET_ALL}"
+                            f"{Fore.WHITE + Style.BRIGHT} reCaptcha Unsolved {Style.RESET_ALL}"
                         )
+
                 else:
                     self.log(
                         f"{Fore.CYAN+Style.BRIGHT}Faucet    :{Style.RESET_ALL}"
@@ -820,63 +883,43 @@ class KiteAi:
                                                 f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
                                                 f"{Fore.YELLOW+Style.BRIGHT} Wrong Answer {Style.RESET_ALL}"
                                             )
-                                    else:
-                                        self.log(
-                                            f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
-                                            f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
-                                            f"{Fore.RED+Style.BRIGHT} Submit Answer Failed {Style.RESET_ALL}"
-                                        )
+
                         else:
                             self.log(
                                 f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
                                 f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
                                 f"{Fore.RED+Style.BRIGHT} GET Quiz Answer Failed {Style.RESET_ALL}"
                             )
-                    else:
-                        self.log(
-                            f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
-                            f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
-                            f"{Fore.RED+Style.BRIGHT} GET Quiz Question Failed {Style.RESET_ALL}"
-                        )
+
                 else:
                     self.log(
                         f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
                         f"{Fore.BLUE + Style.BRIGHT}Status  :{Style.RESET_ALL}"
                         f"{Fore.YELLOW + Style.BRIGHT} Already Answered {Style.RESET_ALL}"
                     )
-            else:
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Daily Quiz:{Style.RESET_ALL}"
-                    f"{Fore.RED+Style.BRIGHT} GET Data Failed {Style.RESET_ALL}"
-                )
 
-            kite_balance = 0
             balance = await self.token_balance(address, proxy)
             if balance:
                 kite_balance = balance.get("data", ).get("balances", {}).get("kite", 0)
 
-            if kite_balance >= 1:
-                amount = float(f"{kite_balance:.1f}")
+                if kite_balance >= 1:
+                    amount = 1
 
-                stake = await self.stake_token(address, amount, proxy)
-                if stake:
-                    self.log(
-                        f"{Fore.CYAN+Style.BRIGHT}Stake     :{Style.RESET_ALL}"
-                        f"{Fore.GREEN+Style.BRIGHT} Success {Style.RESET_ALL}"
-                        f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
-                        f"{Fore.CYAN+Style.BRIGHT} Amount: {Style.RESET_ALL}"
-                        f"{Fore.WHITE+Style.BRIGHT}{amount} KITE{Style.RESET_ALL}"
-                    )
+                    stake = await self.stake_token(address, amount, proxy)
+                    if stake:
+                        self.log(
+                            f"{Fore.CYAN+Style.BRIGHT}Stake     :{Style.RESET_ALL}"
+                            f"{Fore.GREEN+Style.BRIGHT} Success {Style.RESET_ALL}"
+                            f"{Fore.MAGENTA+Style.BRIGHT}-{Style.RESET_ALL}"
+                            f"{Fore.CYAN+Style.BRIGHT} Amount: {Style.RESET_ALL}"
+                            f"{Fore.WHITE+Style.BRIGHT}{amount} KITE{Style.RESET_ALL}"
+                        )
+
                 else:
                     self.log(
                         f"{Fore.CYAN+Style.BRIGHT}Stake     :{Style.RESET_ALL}"
-                        f"{Fore.RED+Style.BRIGHT} Failed {Style.RESET_ALL}"
+                        f"{Fore.YELLOW+Style.BRIGHT} Insufficinet Kite Token Balance {Style.RESET_ALL}"
                     )
-            else:
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Stake     :{Style.RESET_ALL}"
-                    f"{Fore.YELLOW+Style.BRIGHT} Insufficinet Kite Token Balance {Style.RESET_ALL}"
-                )
 
             unstake = await self.claim_stake_rewards(address, proxy)
             if unstake:
@@ -888,62 +931,62 @@ class KiteAi:
                     f"{Fore.CYAN+Style.BRIGHT} Reward: {Style.RESET_ALL}"
                     f"{Fore.WHITE+Style.BRIGHT}{reward} KITE{Style.RESET_ALL}"
                 )
-            else:
-                self.log(
-                    f"{Fore.CYAN+Style.BRIGHT}Unstake   :{Style.RESET_ALL}"
-                    f"{Fore.RED+Style.BRIGHT} Failed {Style.RESET_ALL}"
-                )
 
             self.log(f"{Fore.CYAN+Style.BRIGHT}AI Agents :{Style.RESET_ALL}")
 
-            self.user_interactions[address] = 0
+            used_questions_per_agent = {}
 
-            while self.user_interactions[address] < interact_count:
+            success_count = 0
+
+            while success_count < 30:
                 self.log(
                     f"{Fore.MAGENTA + Style.BRIGHT}  ● {Style.RESET_ALL}"
-                    f"{Fore.BLUE + Style.BRIGHT}Interactions{Style.RESET_ALL}"
-                    f"{Fore.WHITE + Style.BRIGHT} {self.user_interactions[address] + 1} of {interact_count} {Style.RESET_ALL}                       "
+                    f"{Fore.GREEN + Style.BRIGHT}Interactions{Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT} {success_count+1} {Style.RESET_ALL}"
+                    f"{Fore.MAGENTA + Style.BRIGHT}Of{Style.RESET_ALL}"
+                    f"{Fore.WHITE + Style.BRIGHT} 30 {Style.RESET_ALL}                           "
                 )
 
-                agent_name, service_id, question = self.setup_ai_agent(agents)
+                agent = random.choice(self.agent_lists)
+                agent_name = agent["agentName"]
+                service_id = agent["serviceId"]
+                questions = agent["questionLists"]
+
+                if agent_name not in used_questions_per_agent:
+                    used_questions_per_agent[agent_name] = set()
+
+                used_questions = used_questions_per_agent[agent_name]
+                available_questions = [q for q in questions if q not in used_questions]
+
+                question = random.choice(available_questions)
 
                 self.log(
-                    f"{Fore.CYAN + Style.BRIGHT}    Agent Name: {Style.RESET_ALL}"
+                    f"{Fore.BLUE + Style.BRIGHT}    AI Agent: {Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT}{agent_name}{Style.RESET_ALL}"
                 )
                 self.log(
-                    f"{Fore.CYAN + Style.BRIGHT}    Question  : {Style.RESET_ALL}"
+                    f"{Fore.BLUE + Style.BRIGHT}    Question: {Style.RESET_ALL}"
                     f"{Fore.WHITE + Style.BRIGHT}{question}{Style.RESET_ALL}"
                 )
 
                 answer = await self.agent_inference(address, service_id, question, use_proxy, rotate_proxy, proxy)
                 if answer:
-                    self.user_interactions[address] += 1
                     self.log(
-                        f"{Fore.CYAN + Style.BRIGHT}    Answer    : {Style.RESET_ALL}"
+                        f"{Fore.BLUE + Style.BRIGHT}    Answer  : {Style.RESET_ALL}"
                         f"{Fore.WHITE + Style.BRIGHT}{answer.strip()}{Style.RESET_ALL}"
                     )
 
-                    submit = await self.submit_receipt(address, sa_address, service_id, question, answer, use_proxy, rotate_proxy, proxy)
+                    submit = await self.submit_receipt(address, sa_address, service_id, question, answer, proxy)
                     if submit:
+                        used_questions.add(question)
+                        success_count+=1
+
                         self.log(
-                            f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
+                            f"{Fore.BLUE + Style.BRIGHT}    Status  : {Style.RESET_ALL}"
                             f"{Fore.GREEN + Style.BRIGHT}Receipt Submited Successfully{Style.RESET_ALL}"
                         )
-                    else:
-                        self.log(
-                            f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
-                            f"{Fore.RED + Style.BRIGHT}Submit Receipt Failed{Style.RESET_ALL}"
-                        )
-                else:
-                    self.log(
-                        f"{Fore.CYAN + Style.BRIGHT}    Status    : {Style.RESET_ALL}"
-                        f"{Fore.RED + Style.BRIGHT}Interaction Failed{Style.RESET_ALL}"
-                    )
 
-                await self.print_timer(5, 10)
-
-        self.user_interactions[address] = 0
+                await self.print_timer()
 
     async def main(self):
         try:
@@ -959,7 +1002,9 @@ class KiteAi:
                 self.log(f"{Fore.RED + Style.BRIGHT}No Agents Loaded.{Style.RESET_ALL}")
                 return
             
-            faucet, count, use_proxy_choice, rotate_proxy = self.print_question()
+            self.agent_lists = agents
+            
+            faucet, use_proxy_choice, rotate_proxy = self.print_question()
 
             while True:
                 use_proxy = False
@@ -984,14 +1029,25 @@ class KiteAi:
                             f"{Fore.WHITE + Style.BRIGHT} {self.mask_account(address)} {Style.RESET_ALL}"
                             f"{Fore.CYAN + Style.BRIGHT}]{separator}{Style.RESET_ALL}"
                         )
+
+                        if not address:
+                            self.log(
+                                f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
+                                f"{Fore.RED+Style.BRIGHT} Invalid Private Key or Libraries Version Not Supported {Style.RESET_ALL}"
+                            )
+                            continue
                         
                         auth_token = self.generate_auth_token(address)
                         if not auth_token:
+                            self.log(
+                                f"{Fore.CYAN+Style.BRIGHT}Status    :{Style.RESET_ALL}"
+                                f"{Fore.RED+Style.BRIGHT} Generate Auth Token Failed, Check Your Cryptography Library {Style.RESET_ALL}                  "
+                            )
                             continue
                         
                         self.auth_tokens[address] = auth_token
                         
-                        await self.process_accounts(address, agents, faucet, count, use_proxy, rotate_proxy)
+                        await self.process_accounts(address, faucet, use_proxy, rotate_proxy)
                         await asyncio.sleep(3)
 
                 self.log(f"{Fore.CYAN + Style.BRIGHT}={Style.RESET_ALL}"*72)
