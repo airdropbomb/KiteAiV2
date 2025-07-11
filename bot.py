@@ -36,8 +36,9 @@ class KiteAi:
         self.auth_tokens = {}
         self.access_tokens = {}
         self.header_cookies = {}
-        self.ai_agents = {}
-        self.user_interactions = {}
+        self.agent_lists = []
+        self.min_delay = 0
+        self.max_delay = 0
 
     def clear_terminal(self):
         os.system('cls' if os.name == 'nt' else 'clear')
@@ -978,13 +979,13 @@ class KiteAi:
 
                     submit = await self.submit_receipt(address, sa_address, service_id, question, answer, proxy)
                     if submit:
-                        used_questions.add(question)
-                        success_count+=1
-
                         self.log(
                             f"{Fore.BLUE + Style.BRIGHT}    Status  : {Style.RESET_ALL}"
                             f"{Fore.GREEN + Style.BRIGHT}Receipt Submited Successfully{Style.RESET_ALL}"
                         )
+
+                        used_questions.add(question)
+                        success_count += 1
 
                 await self.print_timer()
 
