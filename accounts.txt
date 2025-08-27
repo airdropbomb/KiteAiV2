@@ -1,2 +1,2 @@
-yourwalletaddress1
-yourwalletaddress2
+your_private_key_1
+your_private_key_2
